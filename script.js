@@ -17,26 +17,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Invia comando all'ESP
-    function sendCommand(command) {
+    async function sendCommand(command) {
         if (!espIP) {
             status.textContent = 'IP non configurato!';
             return;
         }
         
         status.textContent = 'Invio comando...';
-        fetch(`http://${espIP}/${command}`)
-            .then(response => {
-                if (response.ok) {
+        
+        try {
+            // Prima prova con fetch API
+            const response = await fetch(`http://${espIP}/${command}`, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                status.textContent = 'Comando inviato!';
+                updateLED(command);
+            } else {
+                throw new Error(`Errore HTTP: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('Errore fetch:', error);
+            
+            // Fallback: prova con JSONP per bypassare CORS
+            status.textContent = 'Tentativo alternativo...';
+            jsonpRequest(espIP, command);
+        }
+    }
+    
+    // Funzione JSONP per bypassare CORS
+    function jsonpRequest(ip, command) {
+        return new Promise((resolve, reject) => {
+            const callbackName = `jsonp_callback_${Date.now()}`;
+            const script = document.createElement('script');
+            
+            // Rimuovi eventuali callback precedenti
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                
+                if (data.status === 'success') {
                     status.textContent = 'Comando inviato!';
                     updateLED(command);
+                    resolve(data);
                 } else {
-                    status.textContent = 'Errore di connessione';
+                    status.textContent = 'Errore di risposta';
+                    reject(new Error('Risposta non valida'));
                 }
-            })
-            .catch(error => {
-                status.textContent = 'Errore di rete';
-                console.error('Errore:', error);
-            });
+            };
+            
+            // Imposta timeout
+            const timeout = setTimeout(() => {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                status.textContent = 'Timeout di connessione';
+                reject(new Error('Timeout'));
+            }, 5000);
+            
+            // Crea URL con callback
+            const url = `http://${ip}/${command}?callback=${callbackName}`;
+            script.src = url;
+            script.onerror = () => {
+                clearTimeout(timeout);
+                delete window[callbackName];
+                document.body.removeChild(script);
+                status.textContent = 'Errore di connessione';
+                reject(new Error('Errore di rete'));
+            };
+            
+            document.body.appendChild(script);
+        });
     }
     
     // Event listeners
