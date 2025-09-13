@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
         status.textContent = 'Invio comando...';
         
         try {
-            // Prima prova con fetch API
+            // Prima prova con fetch API diretta
             const response = await fetch(`http://${espIP}/${command}`, {
                 method: 'GET',
                 mode: 'cors',
@@ -46,7 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Fallback: prova con JSONP per bypassare CORS
             status.textContent = 'Tentativo alternativo...';
-            jsonpRequest(espIP, command);
+            try {
+                await jsonpRequest(espIP, command);
+                status.textContent = 'Comando inviato!';
+                updateLED(command);
+            } catch (jsonpError) {
+                console.error('Errore JSONP:', jsonpError);
+                status.textContent = 'Errore di connessione';
+            }
         }
     }
     
@@ -62,11 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.body.removeChild(script);
                 
                 if (data.status === 'success') {
-                    status.textContent = 'Comando inviato!';
-                    updateLED(command);
                     resolve(data);
                 } else {
-                    status.textContent = 'Errore di risposta';
                     reject(new Error('Risposta non valida'));
                 }
             };
@@ -75,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const timeout = setTimeout(() => {
                 delete window[callbackName];
                 document.body.removeChild(script);
-                status.textContent = 'Timeout di connessione';
                 reject(new Error('Timeout'));
             }, 5000);
             
@@ -86,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 clearTimeout(timeout);
                 delete window[callbackName];
                 document.body.removeChild(script);
-                status.textContent = 'Errore di connessione';
                 reject(new Error('Errore di rete'));
             };
             
