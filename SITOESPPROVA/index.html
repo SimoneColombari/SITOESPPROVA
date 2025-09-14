@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Controllo ESP32</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        button {
+            padding: 20px;
+            font-size: 24px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Controllo LED ESP32</h1>
+    <button onclick="toggleLED()">Cambia Stato LED</button>
+
+    <script>
+        function toggleLED() {
+            fetch('/toggle')
+                .then(response => {
+                    if (response.ok) {
+                        location.reload(); // Ricarica la pagina per aggiornare lo stato
+                    }
+                });
+        }
+    </script>
+</body>
+</html>
