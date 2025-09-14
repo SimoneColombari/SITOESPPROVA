@@ -1,41 +1,750 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-    <title>Controllo ESP32</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenHouse Control System v2.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #00f0ff;
+            --secondary: #39ff14;
+            --accent: #ff006e;
+            --dark: #0a0a0f;
+            --darker: #050508;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Exo 2', sans-serif;
+            background: var(--darker);
+            color: #e0e0e0;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* SFONDO ANIMATO */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(0, 240, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(57, 255, 20, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(255, 0, 110, 0.05) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* HEADER FUTURISTICO */
+        .header {
             text-align: center;
-            margin: 50px;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden;
         }
-        button {
-            padding: 20px;
-            font-size: 24px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 10px;
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(1.8rem, 5vw, 3rem);
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px rgba(0, 240, 255, 0.7)); }
+            to { filter: drop-shadow(0 0 20px rgba(57, 255, 20, 0.7)); }
+        }
+
+        .subtitle {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            color: var(--secondary);
+            letter-spacing: 2px;
+            opacity: 0.8;
+        }
+
+        /* STATUS BAR HOLOGRAPHIC */
+        .status-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(0, 240, 255, 0.1), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .status-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.2);
+        }
+
+        .status-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .status-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--secondary);
+            margin-bottom: 0.3rem;
+        }
+
+        .status-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+
+        /* DASHBOARD NEON */
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem 3rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .control-card {
+            background: linear-gradient(135deg, var(--glass), rgba(255, 255, 255, 0.02));
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .control-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 240, 255, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .control-card:hover::after {
+            opacity: 1;
+        }
+
+        .control-card:hover {
+            transform: translateY(-10px);
+            border-color: var(--primary);
+            box-shadow: 0 15px 40px rgba(0, 240, 255, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 15px;
+            margin-right: 1rem;
+            font-size: 1.5rem;
+            color: var(--dark);
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .card-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* TOGGLE SWITCH NEON */
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .switch-label {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .neon-toggle {
+            position: relative;
+            width: 70px;
+            height: 35px;
+            background: #333;
+            border-radius: 35px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            border: 2px solid #444;
         }
-        button:hover {
-            background-color: #45a049;
+
+        .neon-toggle.active {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-color: var(--primary);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.7);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 25px;
+            height: 25px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .neon-toggle.active .toggle-slider {
+            transform: translateX(35px);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+
+        /* PULSANTI NEON */
+        .neon-btn {
+            width: 100%;
+            padding: 1rem;
+            margin: 1rem 0;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 30px;
+            color: var(--dark);
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.3);
+        }
+
+        .neon-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: left 0.5s;
+        }
+
+        .neon-btn:hover::before {
+            left: 100%;
+        }
+
+        .neon-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 240, 255, 0.5);
+        }
+
+        .neon-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* INPUT FUTURISTICI */
+        .settings-group {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .setting-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary);
+        }
+
+        .neon-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            color: #fff;
+            font-family: 'Exo 2', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .neon-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+        }
+
+        /* NOTIFICHE HOLOGRAPHIC */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.9), rgba(57, 255, 20, 0.9));
+            color: var(--dark);
+            padding: 1.2rem 2rem;
+            border-radius: 15px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            box-shadow: 0 10px 30px rgba(0, 240, 255, 0.4);
+            transform: translateX(500px);
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        /* EFFETTI PARTICELLE */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0;
+            animation: float 10s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .notification {
+                right: 1rem;
+                left: 1rem;
+                transform: translateY(-100px);
+            }
+            
+            .notification.show {
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Controllo LED ESP32</h1>
-    <button onclick="toggleLED()">Cambia Stato LED</button>
+    <!-- PARTICELLE ANIMATE -->
+    <div class="particles" id="particles"></div>
+
+    <!-- HEADER -->
+    <header class="header">
+        <h1>Greenhouse Control System</h1>
+        <div class="subtitle">DOMOTICA QUANTISTICA V2.0</div>
+    </header>
+
+    <!-- STATUS BAR -->
+    <div class="status-container">
+        <div class="status-bar">
+            <div class="status-card">
+                <div class="status-icon"><i class="fas fa-temperature-high"></i></div>
+                <div class="status-value" id="temperature">--°C</div>
+                <div class="status-label">Temperatura</div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon"><i class="fas fa-tint"></i></div>
+                <div class="status-value" id="humidity">--%</div>
+                <div class="status-label">Umidità</div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon"><i class="fas fa-water"></i></div>
+                <div class="status-value" id="pump-status">OFF</div>
+                <div class="status-label">Pompa</div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon"><i class="fas fa-lightbulb"></i></div>
+                <div class="status-value" id="light-status">OFF</div>
+                <div class="status-label">Luci LED</div>
+            </div>
+            <div class="status-card">
+                <div class="status-icon"><i class="fas fa-clock"></i></div>
+                <div class="status-value" id="current-time">--:--</div>
+                <div class="status-label">Orario</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="dashboard">
+        <!-- CARD POMPA -->
+        <div class="control-card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-water"></i></div>
+                <div class="card-title">Controllo Pompa</div>
+            </div>
+            
+            <div class="switch-container">
+                <span class="switch-label">Modalità Automatica</span>
+                <div class="neon-toggle" id="pump-auto">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <button class="neon-btn" id="pump-toggle">
+                <i class="fas fa-power-off"></i> Attiva Pompa
+            </button>
+            
+            <div class="settings-group">
+                <div class="setting-item">
+                    <label class="setting-label">Soglia Umidità (%)</label>
+                    <input type="number" class="neon-input" id="humidity-threshold" min="0" max="100" step="1">
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Durata Irrigazione (sec)</label>
+                    <input type="number" class="neon-input" id="pump-duration" min="1" max="60" step="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD LUCI -->
+        <div class="control-card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-lightbulb"></i></div>
+                <div class="card-title">Controllo Luci LED</div>
+            </div>
+            
+            <div class="switch-container">
+                <span class="switch-label">Modalità Automatica</span>
+                <div class="neon-toggle" id="led-auto">
+                    <div class="toggle-slider"></div>
+                </div>
+            </div>
+            
+            <button class="neon-btn" id="led-toggle">
+                <i class="fas fa-power-off"></i> Accendi Luci
+            </button>
+            
+            <div class="settings-group">
+                <div class="setting-item">
+                    <label class="setting-label">Orario Accensione</label>
+                    <input type="number" class="neon-input" id="light-on" min="0" max="23" step="1" placeholder="Ora (0-23)">
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Orario Spegnimento</label>
+                    <input type="number" class="neon-input" id="light-off" min="0" max="23" step="1" placeholder="Ora (0-23)">
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD IMPOSTAZIONI -->
+        <div class="control-card">
+            <div class="card-header">
+                <div class="card-icon"><i class="fas fa-cogs"></i></div>
+                <div class="card-title">Impostazioni Avanzate</div>
+            </div>
+            
+            <div class="settings-group">
+                <div class="setting-item">
+                    <label class="setting-label">Intervallo Controllo (sec)</label>
+                    <input type="number" class="neon-input" id="check-interval" min="1" max="3600" step="1">
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Sensore Luce (Lux)</label>
+                    <input type="number" class="neon-input" id="light-threshold" min="0" max="10000" step="100">
+                </div>
+                <div class="setting-item">
+                    <label class="setting-label">Temperatura Minima (°C)</label>
+                    <input type="number" class="neon-input" id="min-temp" min="0" max="40" step="0.1">
+                </div>
+            </div>
+            
+            <button class="neon-btn" id="save-settings">
+                <i class="fas fa-save"></i> Salva Configurazione
+            </button>
+        </div>
+    </div>
+
+    <!-- NOTIFICA -->
+    <div class="notification" id="notification">Sistema Aggiornato!</div>
 
     <script>
-        function toggleLED() {
-            fetch('/toggle')
-                .then(response => {
-                    if (response.ok) {
-                        location.reload(); // Ricarica la pagina per aggiornare lo stato
-                    }
+        // CREAZIONE PARTICELLE
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 20) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // ELEMENTI DOM
+        const elements = {
+            temperature: document.getElementById('temperature'),
+            humidity: document.getElementById('humidity'),
+            pumpStatus: document.getElementById('pump-status'),
+            lightStatus: document.getElementById('light-status'),
+            currentTime: document.getElementById('current-time'),
+            pumpAuto: document.getElementById('pump-auto'),
+            ledAuto: document.getElementById('led-auto'),
+            pumpToggle: document.getElementById('pump-toggle'),
+            ledToggle: document.getElementById('led-toggle'),
+            humidityThreshold: document.getElementById('humidity-threshold'),
+            pumpDuration: document.getElementById('pump-duration'),
+            lightOn: document.getElementById('light-on'),
+            lightOff: document.getElementById('light-off'),
+            checkInterval: document.getElementById('check-interval'),
+            lightThreshold: document.getElementById('light-threshold'),
+            minTemp: document.getElementById('min-temp'),
+            saveSettings: document.getElementById('save-settings'),
+            notification: document.getElementById('notification')
+        };
+
+        // VARIABILI GLOBALI
+        let systemData = {};
+        let updateInterval;
+
+        // INIZIALIZZAZIONE
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            fetchData();
+            updateInterval = setInterval(fetchData, 3000);
+            
+            // EVENT LISTENERS
+            elements.pumpAuto.addEventListener('click', togglePumpAuto);
+            elements.ledAuto.addEventListener('click', toggleLedAuto);
+            elements.pumpToggle.addEventListener('click', togglePump);
+            elements.ledToggle.addEventListener('click', toggleLed);
+            elements.saveSettings.addEventListener('click', saveSettings);
+        });
+
+        // RECUPERO DATI
+        function fetchData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    systemData = data;
+                    updateUI();
+                })
+                .catch(error => console.error('Errore:', error));
+        }
+
+        // AGGIORNAMENTO UI
+        function updateUI() {
+            elements.temperature.textContent = `${systemData.temperature}°C`;
+            elements.humidity.textContent = `${systemData.humidity}%`;
+            elements.pumpStatus.textContent = systemData.pumpState ? 'ON' : 'OFF';
+            elements.lightStatus.textContent = systemData.ledState ? 'ON' : 'OFF';
+            elements.currentTime.textContent = systemData.time;
+            
+            elements.pumpAuto.classList.toggle('active', systemData.pumpAuto);
+            elements.ledAuto.classList.toggle('active', systemData.ledAuto);
+            
+            elements.humidityThreshold.value = systemData.humidityThreshold;
+            elements.lightOn.value = systemData.lightOnTime;
+            elements.lightOff.value = systemData.lightOffTime;
+            
+            elements.pumpToggle.innerHTML = systemData.pumpState ? 
+                '<i class="fas fa-power-off"></i> Spegni Pompa' : 
+                '<i class="fas fa-power-off"></i> Attiva Pompa';
+            elements.ledToggle.innerHTML = systemData.ledState ? 
+                '<i class="fas fa-power-off"></i> Spegni Luci' : 
+                '<i class="fas fa-power-off"></i> Accendi Luci';
+        }
+
+        // TOGGLE POMPA AUTO
+        function togglePumpAuto() {
+            const newState = !systemData.pumpAuto;
+            fetch(`/pump?auto=${newState}`)
+                .then(() => {
+                    systemData.pumpAuto = newState;
+                    updateUI();
+                    showNotification(`Modalità pompa: ${newState ? 'AUTOMATICA' : 'MANUALE'}`);
                 });
+        }
+
+        // TOGGLE LUCI AUTO
+        function toggleLedAuto() {
+            const newState = !systemData.ledAuto;
+            fetch(`/led?auto=${newState}`)
+                .then(() => {
+                    systemData.ledAuto = newState;
+                    updateUI();
+                    showNotification(`Modalità luci: ${newState ? 'AUTOMATICA' : 'MANUALE'}`);
+                });
+        }
+
+        // TOGGLE POMPA
+        function togglePump() {
+            const newState = !systemData.pumpState;
+            fetch(`/pump?state=${newState}`)
+                .then(() => {
+                    systemData.pumpState = newState;
+                    updateUI();
+                    showNotification(`Pompa ${newState ? 'ATTIVATA' : 'DISATTIVATA'}`);
+                });
+        }
+
+        // TOGGLE LUCI
+        function toggleLed() {
+            const newState = !systemData.ledState;
+            fetch(`/led?state=${newState}`)
+                .then(() => {
+                    systemData.ledState = newState;
+                    updateUI();
+                    showNotification(`Luci ${newState ? 'ACCES' : 'SPENT'}`);
+                });
+        }
+
+        // SALVA IMPOSTAZIONI
+        function saveSettings() {
+            const params = new URLSearchParams();
+            params.append('humidity', elements.humidityThreshold.value);
+            params.append('lightOn', elements.lightOn.value);
+            params.append('lightOff', elements.lightOff.value);
+            params.append('pumpDuration', elements.pumpDuration.value);
+            params.append('checkInterval', elements.checkInterval.value);
+            
+            fetch(`/settings?${params}`)
+                .then(() => {
+                    fetchData();
+                    showNotification('CONFIGURAZIONE SALVATA!');
+                });
+        }
+
+        // NOTIFICA
+        function showNotification(message) {
+            elements.notification.textContent = message;
+            elements.notification.classList.add('show');
+            setTimeout(() => {
+                elements.notification.classList.remove('show');
+            }, 3000);
         }
     </script>
 </body>
