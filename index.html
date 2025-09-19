@@ -3,550 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Serra Domotica</title>
+    <title>Controllo LED ESP32</title>
     <style>
-        :root {
-            --primary: #00f0ff;
-            --secondary: #39ff14;
-            --accent: #ff006e;
-            --dark: #0a0a0f;
-            --darker: #050508;
-            --glass: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.1);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: 'Arial', sans-serif;
-            background: var(--darker);
-            color: #e0e0e0;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header {
+            font-family: Arial, sans-serif;
             text-align: center;
-            margin-bottom: 30px;
+            margin: 50px;
+            background-color: #f5f5f5;
         }
-
         h1 {
-            font-size: 2.5rem;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
+            color: #333;
         }
-
-        .status-bar {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+        .button-container {
+            margin: 30px 0;
         }
-
-        .status-card {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .status-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--secondary);
-            margin: 10px 0;
-        }
-
-        .status-label {
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            opacity: 0.7;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-
-        .control-card {
-            background: var(--glass);
-            border: 1px solid var(--glass-border);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--glass-border);
-            padding-bottom: 15px;
-        }
-
-        .card-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 10px;
-            margin-right: 15px;
-            font-size: 1.2rem;
-            color: var(--dark);
-        }
-
-        .card-title {
-            font-size: 1.2rem;
-            font-weight: bold;
-        }
-
-        .switch-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 10px;
-        }
-
-        .neon-toggle {
-            position: relative;
-            width: 60px;
-            height: 30px;
-            background: #333;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 2px solid #444;
-        }
-
-        .neon-toggle.active {
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            border-color: var(--primary);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.7);
-        }
-
-        .toggle-slider {
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 22px;
-            height: 22px;
-            background: #fff;
-            border-radius: 50%;
-            transition: all 0.3s;
-        }
-
-        .neon-toggle.active .toggle-slider {
-            transform: translateX(30px);
-        }
-
-        .neon-btn {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: linear-gradient(45deg, var(--primary), var(--secondary));
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 0 10px;
             border: none;
-            border-radius: 30px;
-            color: var(--dark);
-            font-weight: bold;
-            text-transform: uppercase;
+            border-radius: 5px;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: background-color 0.3s;
         }
-
-        .neon-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4);
+        .on-btn {
+            background-color: #4CAF50;
+            color: white;
         }
-
-        .settings-group {
+        .on-btn:hover {
+            background-color: #45a049;
+        }
+        .off-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        .off-btn:hover {
+            background-color: #d32f2f;
+        }
+        .status {
             margin-top: 20px;
-        }
-
-        .setting-item {
-            margin-bottom: 15px;
-        }
-
-        .setting-label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-            color: var(--primary);
-        }
-
-        .neon-input {
-            width: 100%;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 1rem;
-        }
-
-        .neon-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: rgba(0, 240, 255, 0.1);
-        }
-
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.9), rgba(57, 255, 20, 0.9));
-            color: var(--dark);
-            padding: 15px 25px;
-            border-radius: 10px;
+            font-size: 20px;
             font-weight: bold;
-            box-shadow: 0 5px 15px rgba(0, 240, 255, 0.4);
-            transform: translateX(400px);
-            transition: transform 0.5s;
-            z-index: 1000;
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .ip-input {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 1rem;
-            text-align: center;
-        }
-
-        .ip-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            background: rgba(0, 240, 255, 0.1);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Test Serra Domotica</h1>
-            <p>Interfaccia di test per ESP32</p>
-        </div>
-
-        <input type="text" id="esp-ip" class="ip-input" placeholder="Inserisci IP ESP32 (es: 192.168.1.100)" value="192.168.1.100">
-
-        <div class="status-bar">
-            <div class="status-card">
-                <div class="status-value" id="temperature">--°C</div>
-                <div class="status-label">Temperatura</div>
-            </div>
-            <div class="status-card">
-                <div class="status-value" id="humidity">--%</div>
-                <div class="status-label">Umidità</div>
-            </div>
-            <div class="status-card">
-                <div class="status-value" id="pump-status">OFF</div>
-                <div class="status-label">Pompa</div>
-            </div>
-            <div class="status-card">
-                <div class="status-value" id="light-status">OFF</div>
-                <div class="status-label">Luci LED</div>
-            </div>
-            <div class="status-card">
-                <div class="status-value" id="current-time">--:--</div>
-                <div class="status-label">Orario</div>
-            </div>
-        </div>
-
-        <div class="dashboard">
-            <div class="control-card">
-                <div class="card-header">
-                    <div class="card-icon"><i class="fas fa-water"></i></div>
-                    <div class="card-title">Controllo Pompa</div>
-                </div>
-                
-                <div class="switch-container">
-                    <span>Modalità Automatica</span>
-                    <div class="neon-toggle" id="pump-auto">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                
-                <button class="neon-btn" id="pump-toggle">
-                    <i class="fas fa-power-off"></i> Attiva Pompa
-                </button>
-                
-                <div class="settings-group">
-                    <div class="setting-item">
-                        <label class="setting-label">Soglia Umidità (%)</label>
-                        <input type="number" class="neon-input" id="humidity-threshold" min="0" max="100" step="1" value="50">
-                    </div>
-                    <div class="setting-item">
-                        <label class="setting-label">Durata Irrigazione (sec)</label>
-                        <input type="number" class="neon-input" id="pump-duration" min="1" max="60" step="1" value="10">
-                    </div>
-                </div>
-            </div>
-
-            <div class="control-card">
-                <div class="card-header">
-                    <div class="card-icon"><i class="fas fa-lightbulb"></i></div>
-                    <div class="card-title">Controllo Luci LED</div>
-                </div>
-                
-                <div class="switch-container">
-                    <span>Modalità Automatica</span>
-                    <div class="neon-toggle" id="led-auto">
-                        <div class="toggle-slider"></div>
-                    </div>
-                </div>
-                
-                <button class="neon-btn" id="led-toggle">
-                    <i class="fas fa-power-off"></i> Accendi Luci
-                </button>
-                
-                <div class="settings-group">
-                    <div class="setting-item">
-                        <label class="setting-label">Orario Accensione</label>
-                        <input type="number" class="neon-input" id="light-on" min="0" max="23" step="1" placeholder="Ora (0-23)" value="8">
-                    </div>
-                    <div class="setting-item">
-                        <label class="setting-label">Orario Spegnimento</label>
-                        <input type="number" class="neon-input" id="light-off" min="0" max="23" step="1" placeholder="Ora (0-23)" value="20">
-                    </div>
-                </div>
-            </div>
-
-            <div class="control-card">
-                <div class="card-header">
-                    <div class="card-icon"><i class="fas fa-cogs"></i></div>
-                    <div class="card-title">Impostazioni Avanzate</div>
-                </div>
-                
-                <div class="settings-group">
-                    <div class="setting-item">
-                        <label class="setting-label">Intervallo Controllo (sec)</label>
-                        <input type="number" class="neon-input" id="check-interval" min="1" max="3600" step="1" value="30">
-                    </div>
-                    <div class="setting-item">
-                        <label class="setting-label">Sensore Luce (Lux)</label>
-                        <input type="number" class="neon-input" id="light-threshold" min="0" max="10000" step="100" value="500">
-                    </div>
-                    <div class="setting-item">
-                        <label class="setting-label">Temperatura Minima (°C)</label>
-                        <input type="number" class="neon-input" id="min-temp" min="0" max="40" step="0.1" value="15">
-                    </div>
-                </div>
-                
-                <button class="neon-btn" id="save-settings">
-                    <i class="fas fa-save"></i> Salva Configurazione
-                </button>
-            </div>
-        </div>
+    <h1>Controllo LED ESP32</h1>
+    
+    <div class="button-container">
+        <button class="on-btn" onclick="controlLED('on')">ACCENDI LED</button>
+        <button class="off-btn" onclick="controlLED('off')">SPEGNI LED</button>
     </div>
+    
+    <div id="status" class="status">Stato: Sconosciuto</div>
 
-    <div class="notification" id="notification">Sistema Aggiornato!</div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
-        // ELEMENTI DOM
-        const elements = {
-            espIp: document.getElementById('esp-ip'),
-            temperature: document.getElementById('temperature'),
-            humidity: document.getElementById('humidity'),
-            pumpStatus: document.getElementById('pump-status'),
-            lightStatus: document.getElementById('light-status'),
-            currentTime: document.getElementById('current-time'),
-            pumpAuto: document.getElementById('pump-auto'),
-            ledAuto: document.getElementById('led-auto'),
-            pumpToggle: document.getElementById('pump-toggle'),
-            ledToggle: document.getElementById('led-toggle'),
-            humidityThreshold: document.getElementById('humidity-threshold'),
-            pumpDuration: document.getElementById('pump-duration'),
-            lightOn: document.getElementById('light-on'),
-            lightOff: document.getElementById('light-off'),
-            checkInterval: document.getElementById('check-interval'),
-            lightThreshold: document.getElementById('light-threshold'),
-            minTemp: document.getElementById('min-temp'),
-            saveSettings: document.getElementById('save-settings'),
-            notification: document.getElementById('notification')
-        };
-
-        // VARIABILI GLOBALI
-        let systemData = {};
-        let updateInterval;
-
-        // INIZIALIZZAZIONE
-        document.addEventListener('DOMContentLoaded', () => {
-            // Carica l'IP salvato
-            const savedIp = localStorage.getItem('espIp');
-            if (savedIp) {
-                elements.espIp.value = savedIp;
-            }
+        // Sostituisci con l'IP del tuo ESP32
+        const esp32IP = "192.168.1.100"; 
+        
+        function controlLED(action) {
+            const url = `http://${esp32IP}/${action}`;
             
-            // Salva l'IP quando cambia
-            elements.espIp.addEventListener('change', () => {
-                localStorage.setItem('espIp', elements.espIp.value);
-                fetchData(); // Ricarica i dati con il nuovo IP
-            });
-            
-            fetchData();
-            updateInterval = setInterval(fetchData, 3000);
-            
-            // EVENT LISTENERS
-            elements.pumpAuto.addEventListener('click', togglePumpAuto);
-            elements.ledAuto.addEventListener('click', toggleLedAuto);
-            elements.pumpToggle.addEventListener('click', togglePump);
-            elements.ledToggle.addEventListener('click', toggleLed);
-            elements.saveSettings.addEventListener('click', saveSettings);
-        });
-
-        // RECUPERO DATI
-        function fetchData() {
-            const baseUrl = `http://${elements.espIp.value}`;
-            
-            fetch(`${baseUrl}/data`)
+            fetch(url)
                 .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    systemData = data;
-                    updateUI();
-                })
-                .catch(error => {
-                    console.error('Errore:', error);
-                    showNotification('Errore di connessione con ESP32!');
-                });
-        }
-
-        // AGGIORNAMENTO UI
-        function updateUI() {
-            elements.temperature.textContent = `${systemData.temperature}°C`;
-            elements.humidity.textContent = `${systemData.humidity}%`;
-            elements.pumpStatus.textContent = systemData.pumpState ? 'ON' : 'OFF';
-            elements.lightStatus.textContent = systemData.ledState ? 'ON' : 'OFF';
-            elements.currentTime.textContent = systemData.time;
-            
-            elements.pumpAuto.classList.toggle('active', systemData.pumpAuto);
-            elements.ledAuto.classList.toggle('active', systemData.ledAuto);
-            
-            elements.humidityThreshold.value = systemData.humidityThreshold;
-            elements.lightOn.value = systemData.lightOnTime;
-            elements.lightOff.value = systemData.lightOffTime;
-            
-            elements.pumpToggle.innerHTML = systemData.pumpState ? 
-                '<i class="fas fa-power-off"></i> Spegni Pompa' : 
-                '<i class="fas fa-power-off"></i> Attiva Pompa';
-            elements.ledToggle.innerHTML = systemData.ledState ? 
-                '<i class="fas fa-power-off"></i> Spegni Luci' : 
-                '<i class="fas fa-power-off"></i> Accendi Luci';
-        }
-
-        // TOGGLE POMPA AUTO
-        function togglePumpAuto() {
-            const newState = !systemData.pumpAuto;
-            sendCommand(`/pump?auto=${newState}`, () => {
-                systemData.pumpAuto = newState;
-                updateUI();
-                showNotification(`Modalità pompa: ${newState ? 'AUTOMATICA' : 'MANUALE'}`);
-            });
-        }
-
-        // TOGGLE LUCI AUTO
-        function toggleLedAuto() {
-            const newState = !systemData.ledAuto;
-            sendCommand(`/led?auto=${newState}`, () => {
-                systemData.ledAuto = newState;
-                updateUI();
-                showNotification(`Modalità luci: ${newState ? 'AUTOMATICA' : 'MANUALE'}`);
-            });
-        }
-
-        // TOGGLE POMPA
-        function togglePump() {
-            const newState = !systemData.pumpState;
-            sendCommand(`/pump?state=${newState}`, () => {
-                systemData.pumpState = newState;
-                updateUI();
-                showNotification(`Pompa ${newState ? 'ATTIVATA' : 'DISATTIVATA'}`);
-            });
-        }
-
-        // TOGGLE LUCI
-        function toggleLed() {
-            const newState = !systemData.ledState;
-            sendCommand(`/led?state=${newState}`, () => {
-                systemData.ledState = newState;
-                updateUI();
-                showNotification(`Luci ${newState ? 'ACCES' : 'SPENT'}`);
-            });
-        }
-
-        // SALVA IMPOSTAZIONI
-        function saveSettings() {
-            const params = new URLSearchParams();
-            params.append('humidity', elements.humidityThreshold.value);
-            params.append('lightOn', elements.lightOn.value);
-            params.append('lightOff', elements.lightOff.value);
-            params.append('pumpDuration', elements.pumpDuration.value);
-            params.append('checkInterval', elements.checkInterval.value);
-            params.append('lightThreshold', elements.lightThreshold.value);
-            params.append('minTemp', elements.minTemp.value);
-            
-            sendCommand(`/settings?${params}`, () => {
-                fetchData();
-                showNotification('CONFIGURAZIONE SALVATA!');
-            });
-        }
-
-        // INVIO COMANDI
-        function sendCommand(endpoint, callback) {
-            const baseUrl = `http://${elements.espIp.value}`;
-            
-            fetch(`${baseUrl}${endpoint}`)
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
+                    if (!response.ok) {
+                        throw new Error('Errore di rete');
+                    }
                     return response.text();
                 })
                 .then(data => {
-                    console.log('Risposta:', data);
-                    if (callback) callback();
+                    document.getElementById('status').textContent = `Stato: ${action === 'on' ? 'ACCESO' : 'SPENTO'}`;
+                    console.log('Risposta ESP32:', data);
                 })
                 .catch(error => {
+                    document.getElementById('status').textContent = 'Errore: ' + error.message;
                     console.error('Errore:', error);
-                    showNotification('Errore di comunicazione con ESP32!');
                 });
         }
-
-        // NOTIFICA
-        function showNotification(message) {
-            elements.notification.textContent = message;
-            elements.notification.classList.add('show');
-            setTimeout(() => {
-                elements.notification.classList.remove('show');
-            }, 3000);
-        }
+        
+        // Verifica stato iniziale
+        window.onload = function() {
+            document.getElementById('status').textContent = 'Pronto a controllare il LED';
+        };
     </script>
 </body>
 </html>
